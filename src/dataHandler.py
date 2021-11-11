@@ -29,10 +29,11 @@ def process_incoming_data(incoming_data: str, payload_queue: Queue):
         data_obj = json.loads(incoming_data)
         if data_obj['cmd']:
             if('payload' in data_obj):
-                payload_queue.put(data_obj['payload'])
+                payload_queue.put(data_obj['payload'].replace('\\"', '"'))
+                #print_to_console_json(data_obj['payload'].replace('\\"', '"'))
             return data_obj['cmd']
     except json.decoder.JSONDecodeError:
-        print("Bad JSON format")
+        print_to_console_json("\nCommand: Bad JSON format\n")
 
 
 """
@@ -61,9 +62,9 @@ Write data to console in json format
 
 def print_to_console_json(data: bytes or str):
     if type(data) is bytes:
-        data = data.decode('utf-8').strip()
+        data = data.decode('utf-8', 'ignore')
     if data:
-        output = {'payload': data}
+        output = {'payload': data.replace('"', '\\"').replace('\n', '#n#')}
         json_output = json.dumps(output)
         encoded_output = json_output.encode('utf-8')
         stdout.buffer.write(encoded_output)

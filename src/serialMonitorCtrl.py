@@ -1,7 +1,7 @@
 import serial
 from serial.serialutil import SerialException
 from serial.tools.list_ports import comports
-import json
+import json, time
 
 
 line_endings = {'nl': '\n',
@@ -26,6 +26,8 @@ class SerialMonitor:
         self._input_payload_queue = input_payload_queue
         self._commands = None
         self._endOfLine = line_endings[eol]
+        self._lastReadTime = 0
+        self._bytebuffer = b''
 
     """
     Initialize and open new serial port
@@ -56,8 +58,15 @@ class SerialMonitor:
     def read(self) -> bytes:
         if self.isOpen() is True:
             try:
-                line = self._serial.readline()
-                return line
+                if self._serial.inWaiting():
+                    #line = self._serial.readline()
+                    self._bytebuffer += self._serial.read(self._serial.inWaiting())
+                    self._lastReadTime = time.time()
+
+                if len(self._bytebuffer)> 0 and ((self._bytebuffer[-1] == '\n') or (time.time()- self._lastReadTime) > 0.2):
+                    line = self._bytebuffer
+                    self._bytebuffer = b''
+                    return line
             except (SerialException, TypeError, AttributeError):
                 print(f'Connection closed to device at port {self._port}')
                 raise SystemExit
